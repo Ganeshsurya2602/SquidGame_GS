@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>SquidGame_By_Ganesh Suryawanshi</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body oncontextmenu="return false">
+  <nav class="navbar fixed-top">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <div class="navbar-brand text-danger" style="font-family: 'Orbitron', sans-serif; font-size: 1.5rem;">Squid Game</div>
+      <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔉</div>
+    </div>
+  </nav>
+  <section class="game-grid container py-4">
+    <img src="Img/C_Mingle.png" class="card-img-top square-img" alt="Mingle" onclick="startGame('Mingle')">
+    <img src="Img/C_RedLightGreenLight.png" class="card-img-top square-img" alt="Red Light Green Light" onclick="startGame('Red Light Green Light')">
+    <img src="Img/C_TugOfWar.png" class="card-img-top square-img" alt="Tug of War" onclick="startGame('Tug of War')">
+    <img src="Img/C_Marbles.png" class="card-img-top square-img" alt="Marbles" onclick="startGame('Marbles')">
+    <img src="Img/C_JumpRope.png" class="card-img-top square-img" alt="Jump Rope" onclick="startGame('Jump Rope')">
+    <img src="Img/C_RussianRoulette.png" class="card-img-top square-img" alt="Russian Roulette" onclick="startGame('Russian Roulette')">
+    <img src="Img/C_HideAndSeek.png" class="card-img-top square-img" alt="Hide and Seek" onclick="startGame('Hide and Seek')">
+    <img src="Img/C_GlassBridge.png" class="card-img-top square-img" alt="Glass Bridge" onclick="startGame('Glass Bridge')">
+    <img src="Img/C_Dalgona.png" class="card-img-top square-img" alt="Dalgona" onclick="startGame('Dalgona')">
+    <img src="Img/C_BreadAndLottery.png" class="card-img-top square-img" alt="Bread And Lottery" onclick="startGame('Bread And Lottery')">
+    <img src="Img/C_Ddakji.png" class="card-img-top square-img" alt="Ddakji" onclick="startGame('Ddakji')">
+    <img src="Img/C_RockPaperScissors.png" class="card-img-top square-img" alt="Rock Paper Scissors" onclick="startGame('Rock Paper Scissors')">
+  </section>
+
+  <section class="about-section d-flex flex-wrap align-items-center justify-content-center text-white">
+    <img src="MYSGPHOTO.png" alt="Ganesh" class="about-img me-4">
+    <div class="about-text">
+      
+      <div style="background: rgba(0, 0, 0, 0.6);  /* semi-transparent black */
+                  border-radius: 20px;            /* rounded corners */
+                  padding: 20px;
+      ">    
+      <h2>Ganesh Suryawanshi</h2>
+      <p>
+ Welcome, Player! Glad you made it this far.  
+  This isn’t just another website — it’s a special Squid Game universe, crafted with passion, code, and a little bit of madness.  
+  I’m the web developer who stitched together every twist, every bug, and just the right amount of danger in this digital world.  
+  I built this so you can actually <em>feel</em> the thrill of Squid Game — right from your screen.  
+  But remember — you're not alone here.  
+  I’m already inside this playground, waiting for you.  
+  So tell me... are you just passing by, or are you truly ready to play?
+</p>
+
+    </div>
+    </div>
+  </section>
+
+  <footer class="footer bg-black text-center text-white py-3">
+    <div class="social-icons">
+      <a href="https://www.linkedin.com/in/ganesh-suryawanshi2602" target="_blank"><i class="fab fa-linkedin"></i></a>
+      <a href="https://wa.me/919326897957" target="_blank"><i class="fab fa-whatsapp"></i></a>
+      <a href="mailto:ganeshg2602@gmail.com"><i class="fas fa-envelope"></i></a>
+      <a href="https://t.me/surya_200" target="_blank"><i class="fab fa-telegram"></i></a>
+    </div>
+    <p class="mb-0">&copy; 2025 Ganesh Suryawanshi | All Rights Reserved</p>
+  </footer>
+
+  <audio id="bgMusic" src="MUSIC/Game_IntroSound.mp3" loop></audio>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4jXgTdTR7UY4FkIQJARRYldmFYazh93E",
+      authDomain: "squid-game-ganeshsuryawanshi.firebaseapp.com",
+      databaseURL: "https://squid-game-ganeshsuryawanshi-default-rtdb.firebaseio.com",
+      projectId: "squid-game-ganeshsuryawanshi",
+      storageBucket: "squid-game-ganeshsuryawanshi.appspot.com",
+      messagingSenderId: "910302903643",
+      appId: "1:910302903643:web:1e553587134754a0356e7e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Audio Mute/Unmute
+    const audioIcon = document.getElementById('audioIcon');
+    const bgMusic = document.getElementById('bgMusic');
+
+    function toggleMute() {
+      const isMuted = localStorage.getItem('sound') === 'mute';
+      localStorage.setItem('sound', isMuted ? 'unmute' : 'mute');
+      updateAudioIcon();
+      isMuted ? bgMusic.play() : bgMusic.pause();
+    }
+
+    function updateAudioIcon() {
+      audioIcon.textContent = localStorage.getItem('sound') === 'mute' ? '🔇' : '🔉';
+    }
+
+    window.onload = () => {
+      if (!localStorage.getItem("sound")) localStorage.setItem("sound", "unmute");
+      updateAudioIcon();
+
+      if (localStorage.getItem("sound") === "unmute") {
+        bgMusic.play().catch(() => {
+          document.addEventListener("click", () => bgMusic.play(), { once: true });
+        });
+      }
+
+      // UserID creation and visit logging
+      const userId = localStorage.getItem("squid_user_id") || `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      localStorage.setItem("squid_user_id", userId);
+
+      const visitTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+      const visitDate = new Date().toLocaleDateString();
+      const platform = navigator.platform;
+
+      firebase.database().ref(`users/${userId}/visitDetails`).set({
+        visitTime,
+        visitDate,
+        platform
+      });
+    };
+
+    // Game Routing Map
+    const gameRoutes = {
+      "Jump Rope": "JumpRopeGame.html",
+      "Mingle": "MingleGame.html",
+      "Red Light Green Light": "RedLightGreenLightGame.html",
+      "Tug of War": "TugOfWarGame.html",
+      "Marbles": "MarblesGame.html",
+      "Russian Roulette": "RussianRouletteGame.html",
+      "Hide and Seek": "HideAndSeekGame.html",
+      "Glass Bridge": "GlassBridgeGame.html",
+      "Dalgona": "DalgonaGame.html",
+      "Bread And Lottery": "BreadAndLotteryGame.html",
+      "Ddakji": "DdakjiGame.html",
+      "Rock Paper Scissors": "RockPaperScissorsGame.html"
+    };
+
+    // Start Game
+    window.startGame = function (gameName) {
+      const userId = localStorage.getItem("squid_user_id");
+      const timestamp = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+      const gameURL = gameRoutes[gameName];
+
+      if (gameURL) window.location.href = gameURL;
+
+      if (userId && gameURL) {
+        firebase.database().ref(`users/${userId}/gamesPlayed`).push({
+          gameName,
+          time: timestamp
+        });
+      }
+    };
+  </script>
+</body>
+</html>

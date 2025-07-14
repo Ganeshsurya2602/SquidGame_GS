@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ddakji_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="DdakjiGame.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+</head>
+<body oncontextmenu="return false" style="user-select: none;">
+  <nav>
+    <div><strong style="font-family: 'Orbitron', sans-serif;">Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔊</div>
+  </nav>
+
+  <div class="container">
+    <button id="ruleBtn" class="btn btn-warning btn-sm" onclick="showRules()">📜 Rule Book</button>
+    <h1>Ddakji Flip Challenge</h1>
+
+    <div class="tile-area">
+      <div id="botTile" class="tile"></div>
+    </div>
+
+    <div id="buttonPanel">
+      <button class="btn-circle btn-start" onclick="playSound('o'); startGame()">O</button>
+      <button class="btn-circle btn-exit" onclick="playXSoundThenExit()">X</button>
+    </div>
+
+    <div class="controls" id="controls">
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <label>Angle:</label>
+        <input type="range" id="angle" class="form-range" min="0" max="360" value="0">
+        <span id="angleDisplay">0°</span>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
+        <label>Power:</label>
+        <input type="range" id="power" min="1" max="10" value="5">
+        <span id="powerLabel">5</span>/10
+      </div>
+
+      <button class="btn btn-info btn-sm mt-2" onclick="throwTile()">Throw</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <div class="modal fade" id="rulesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🎮 Game Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>🔘 Press <strong>O</strong> to start the game.</li>
+            <li>🎯 Use the sliders to set your throw angle and power.</li>
+            <li>🔀 Try to flip the tile. If it flips, you win!</li>
+            <li>❌ One round only. No retries!</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">Let's Play!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="bgMusic" src="Music/DDakji_BGM.mp3" loop preload="auto"></audio>
+  <audio id="oSound" src="Music/O_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="xSound" src="Music/X_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="winSound" src="Music/Win_SoundEffect.wav" preload="auto"></audio>
+  <audio id="loseSound" src="Music/Gun Shot_SoundEffect.mp3" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const botTile = document.getElementById('botTile');
+    const resultDiv = document.getElementById('result');
+    const buttonPanel = document.getElementById('buttonPanel');
+    const controlsDiv = document.getElementById('controls');
+    const angleSlider = document.getElementById('angle');
+    const powerSlider = document.getElementById('power');
+    const angleDisplay = document.getElementById('angleDisplay');
+    const powerLabel = document.getElementById('powerLabel');
+
+    const bgMusic = document.getElementById('bgMusic');
+    const oSound = document.getElementById('oSound');
+    const xSound = document.getElementById('xSound');
+    const winSound = document.getElementById('winSound');
+    const loseSound = document.getElementById('loseSound');
+    const audioIcon = document.getElementById('audioIcon');
+
+    let gameStarted = false;
+
+    if (!localStorage.getItem("sound")) localStorage.setItem("sound", "unmute");
+
+    function toggleMute() {
+      const newState = localStorage.getItem("sound") === "mute" ? "unmute" : "mute";
+      localStorage.setItem("sound", newState);
+      updateAudioState(true);
+    }
+
+    function updateAudioState(forcePlay = false) {
+      const isMuted = localStorage.getItem("sound") === "mute";
+      [bgMusic, oSound, xSound, winSound, loseSound].forEach(audio => audio.muted = isMuted);
+      audioIcon.textContent = isMuted ? "🔇" : "🔊";
+      if (!isMuted && forcePlay) {
+        bgMusic.play().catch(() => document.addEventListener("click", tryPlayOnce));
+      } else {
+        bgMusic.pause();
+      }
+    }
+
+    function tryPlayOnce() {
+      bgMusic.play().catch(() => {});
+      document.removeEventListener("click", tryPlayOnce);
+    }
+
+    function playSound(type) {
+      if (localStorage.getItem("sound") === "mute") return;
+      if (type === "o") oSound.play();
+      else if (type === "x") xSound.play();
+    }
+
+    function playXSoundThenExit() {
+      if (localStorage.getItem("sound") !== "mute") {
+        xSound.play();
+        xSound.onended = () => location.href = 'index.html';
+      } else {
+        location.href = 'index.html';
+      }
+    }
+
+    function showRules() {
+      const modal = new bootstrap.Modal(document.getElementById('rulesModal'));
+      modal.show();
+    }
+
+    function startGame() {
+      gameStarted = true;
+      buttonPanel.style.display = 'none';
+      controlsDiv.style.display = 'block';
+      resultDiv.textContent = "Set your angle & power, then press Throw!";
+      botTile.classList.remove('flipped');
+      botTile.style.background = '#ff5555';
+      botTile.style.transform = 'rotateZ(0deg)';
+      angleSlider.value = 0;
+      angleDisplay.textContent = `0°`;
+    }
+
+    angleSlider.addEventListener('input', () => {
+      const angleVal = angleSlider.value;
+      angleDisplay.textContent = `${angleVal}°`;
+      botTile.style.transform = `rotateZ(${angleVal}deg)`;
+    });
+
+    powerSlider.addEventListener('input', () => {
+      const power = powerSlider.value;
+      powerLabel.textContent = power;
+      const red = Math.floor((power - 1) * 25.5);
+      const blue = 255 - red;
+      powerSlider.style.background = `linear-gradient(to right, rgb(${blue},${blue},255), rgb(${red},0,0))`;
+    });
+
+    function throwTile() {
+      if (!gameStarted) return;
+      const power = parseInt(powerSlider.value);
+      const angle = parseInt(angleSlider.value);
+      const flipChance = power * Math.cos(angle * Math.PI / 180) + Math.random() * 5;
+      const flipped = flipChance > 8.5;
+
+      if (flipped) {
+        botTile.classList.add('flipped');
+        setTimeout(() => {
+          botTile.classList.remove('flipped');
+          botTile.style.background = '#00aaff';
+          resultDiv.textContent = '🏆 You flipped the tile! Victory!';
+          bgMusic.pause();
+          winSound.currentTime = 0;
+          winSound.play();
+          winSound.onended = () => { if (localStorage.getItem("sound") === "unmute") bgMusic.play(); };
+        }, 1000);
+      } else {
+        botTile.classList.remove('flipped');
+        botTile.style.background = '#ff5555';
+        resultDiv.textContent = '❌ Tile resisted! You lost.';
+        bgMusic.pause();
+        loseSound.currentTime = 0;
+        loseSound.play();
+        loseSound.onended = () => { if (localStorage.getItem("sound") === "unmute") bgMusic.play(); };
+      }
+      controlsDiv.style.display = 'none';
+      buttonPanel.style.display = 'block';
+      gameStarted = false;
+    }
+
+    window.onload = () => updateAudioState(true);
+  </script>
+</body>
+</html>

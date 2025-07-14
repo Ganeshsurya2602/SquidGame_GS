@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>RedLightGreenLight_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="RedLightGreenLightGame.css">
+</head>
+<body oncontextmenu="return false" style="user-select: none;">
+  <nav>
+    <div><strong style="font-family: 'Orbitron', sans-serif;">Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔊</div>
+  </nav>
+
+  <button id="guideBtn" class="btn btn-warning btn-sm" onclick="showGuide()">📜 Rule Book</button>
+
+  <div class="container" onclick="handleTap()">
+    <h1>Red Light Green Light</h1>
+    <div id="status"></div>
+    <div id="track" class="track"></div>
+    <div id="result"></div>
+    <div id="buttonPanel">
+      <button class="btn-circle btn-start" onclick="playSound('o'); startGame()">O</button>
+      <button class="btn-circle btn-exit" onclick="playXSoundThenExit()">X</button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="guideModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🎮 Game Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>🔘 Press <strong>O</strong> to start the game.</li>
+            <li>🟢 You can move only during GREEN light.</li>
+            <li>🔴 Moving during RED light will eliminate you.</li>
+            <li>📱 Tap anywhere on the screen to move forward by one step.</li>
+            <li>🚶 Beat Ganesh (the bot) in this race to survive!</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success" data-bs-dismiss="modal">Let's Play!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="bgMusic" src="Music/RedLightGreenLight_BGM.mp3" loop preload="auto"></audio>
+  <audio id="redLightSound" src="Music/RedLightSoundEffect.mp3" preload="auto"></audio>
+  <audio id="greenLightSound" src="Music/GreenLightSoundEffect.mp3" preload="auto"></audio>
+  <audio id="winSound" src="Music/Win_SoundEffect.wav" preload="auto"></audio>
+  <audio id="oSound" src="Music/O_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="xSound" src="Music/X_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="Music/Gun Shot_SoundEffect.mp3" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let GOAL = window.innerWidth <= 768 ? 11 : 24;
+    let playerPos = 0, botPos = 0, botSpeedLevel = 1, previousWin = false;
+    let light = 'red', interval, botInterval;
+    let playing = false, eliminated = false, gameStarted = false, canMove = false;
+
+    const trackDiv = document.getElementById('track');
+    const resultDiv = document.getElementById('result');
+    const buttonPanel = document.getElementById('buttonPanel');
+    const statusDiv = document.getElementById('status');
+
+    const bgMusic = document.getElementById('bgMusic');
+    const redLightSound = document.getElementById('redLightSound');
+    const greenLightSound = document.getElementById('greenLightSound');
+    const winSound = document.getElementById('winSound');
+    const oSound = document.getElementById('oSound');
+    const xSound = document.getElementById('xSound');
+    const loseSound = document.getElementById('loseSound');
+    const audioIcon = document.getElementById('audioIcon');
+
+    if (!localStorage.getItem("sound")) localStorage.setItem("sound", "unmute");
+
+    function toggleMute() {
+      const newState = localStorage.getItem("sound") === "mute" ? "unmute" : "mute";
+      localStorage.setItem("sound", newState);
+      updateAudioState(true);
+    }
+
+    function updateAudioState(forcePlay = false) {
+      const isMuted = localStorage.getItem("sound") === "mute";
+      [bgMusic, redLightSound, greenLightSound, oSound, xSound, loseSound, winSound].forEach(audio => audio.muted = isMuted);
+      audioIcon.textContent = isMuted ? "🔇" : "🔊";
+      if (!isMuted && forcePlay) {
+        bgMusic.play().catch(() => document.addEventListener("click", tryPlayOnce));
+      } else {
+        bgMusic.pause();
+      }
+    }
+
+    function tryPlayOnce() {
+      bgMusic.play().catch(() => {});
+      document.removeEventListener("click", tryPlayOnce);
+    }
+
+    function playSound(type) {
+      if (localStorage.getItem("sound") === "mute") return;
+      if (type === "o") oSound.play();
+      else if (type === "x") xSound.play();
+    }
+
+    function playXSoundThenExit() {
+      if (localStorage.getItem("sound") !== "mute") {
+        xSound.play();
+        xSound.onended = () => location.href = 'index.html';
+      } else {
+        location.href = 'index.html';
+      }
+    }
+
+    function drawTrack() {
+      trackDiv.innerHTML = '';
+      for (let i = 0; i < GOAL; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        if (i === GOAL - 1) tile.classList.add('goal'), tile.innerHTML = '🏁';
+        else if (i === playerPos && i === botPos) tile.classList.add('player'), tile.innerHTML = '🧍🏼🧍🏼‍♂️';
+        else if (i === playerPos) tile.classList.add('player'), tile.innerHTML = '🚶🏼‍➡️';
+        else if (i === botPos) tile.classList.add('bot'), tile.innerHTML = '🚶🏼‍♂️‍➡️';
+        trackDiv.appendChild(tile);
+      }
+    }
+
+    function switchLight() {
+      light = light === 'green' ? 'red' : 'green';
+      if (light === 'green') { greenLightSound.currentTime = 0; greenLightSound.play(); }
+      else { redLightSound.currentTime = 0; redLightSound.play(); }
+      updateLightStatus();
+    }
+
+    function updateLightStatus() {
+      statusDiv.textContent = light === 'green' ? '🟢 GREEN LIGHT' : '🔴 RED LIGHT';
+      statusDiv.className = 'status ' + light;
+    }
+
+    function movePlayer() {
+      if (!playing || eliminated || !canMove || playerPos >= GOAL) return;
+      if (light === 'red') {
+        eliminated = true;
+        playing = false;
+        clearInterval(interval);
+        clearInterval(botInterval);
+        resultDiv.textContent = '👁️ Doll detected motion. You’re eliminated.';
+        resultDiv.style.color = '#ff4d4d';
+        buttonPanel.style.display = 'flex';
+        bgMusic.pause();
+        loseSound.currentTime = 0; loseSound.play();
+        loseSound.onended = () => { if (localStorage.getItem("sound") === "unmute") bgMusic.play(); };
+      } else {
+        playerPos++;
+        drawTrack();
+        checkWin();
+      }
+    }
+
+    function botMove() {
+      if (!playing || botPos >= GOAL) return;
+      if (light === 'green' && Math.random() > 0.1) botPos += Math.ceil(botSpeedLevel);
+      drawTrack();
+      checkWin();
+    }
+
+    function checkWin() {
+      if (playerPos >= GOAL) {
+        playing = false;
+        clearInterval(interval);
+        clearInterval(botInterval);
+        resultDiv.textContent = '🏁 You escaped the doll’s gaze. Victory is yours.';
+        resultDiv.style.color = '#00ff88';
+        buttonPanel.style.display = 'flex';
+        bgMusic.pause();
+        winSound.currentTime = 0; winSound.play();
+        winSound.onended = () => { if (localStorage.getItem("sound") === "unmute") bgMusic.play(); };
+        previousWin = true;
+      } else if (botPos >= GOAL) {
+        playing = false;
+        clearInterval(interval);
+        clearInterval(botInterval);
+        resultDiv.textContent = '🏁 Ganesh crossed the line. You didn’t.';
+        resultDiv.style.color = '#ff4d4d';
+        buttonPanel.style.display = 'flex';
+        bgMusic.pause();
+        loseSound.currentTime = 0; loseSound.play();
+        loseSound.onended = () => { if (localStorage.getItem("sound") === "unmute") bgMusic.play(); };
+        previousWin = false;
+      }
+    }
+
+    function startGame() {
+      playerPos = botPos = 0;
+      eliminated = false;
+      playing = true;
+      gameStarted = true;
+      canMove = false;
+      resultDiv.textContent = '';
+      buttonPanel.style.display = 'none';
+      drawTrack();
+      light = Math.random() > 0.5 ? 'green' : 'red';
+      updateLightStatus();
+      interval = setInterval(switchLight, Math.random() * 1500 + 1500);
+      if (previousWin) botSpeedLevel *= 1.1; // Only increase by 10% per win
+      botInterval = setInterval(botMove, 500);
+      setTimeout(() => canMove = true, 300);
+    }
+
+    function showGuide() {
+      const modal = new bootstrap.Modal(document.getElementById('guideModal'));
+      modal.show();
+    }
+
+    function handleTap() {
+      if (!gameStarted) return;
+      if (playing) movePlayer();
+    }
+
+    window.onload = () => updateAudioState(true);
+  </script>
+</body>
+</html>

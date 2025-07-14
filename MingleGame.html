@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Mingle_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="MingleGame.css">
+</head>
+<body oncontextmenu="return false">
+  <nav>
+    <div><strong>Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔉</div>
+  </nav>
+
+  <button id="ruleBtn" class="btn btn-warning btn-sm" onclick="showRules()">📜 Rule Book</button>
+
+  <div class="container">
+    <h1>Mingle Game</h1>
+    <div id="status">Press O to Begin</div>
+    <div id="buttonPanel">
+      <button class="btn-circle btn-start" onclick="startGame()">O</button>
+      <button class="btn-circle btn-exit" onclick="playX()">X</button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="rulesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🎮 Game Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>🔘 Press <strong>O</strong> to begin the game.</li>
+            <li>⏳ Stay tuned, this game is still under development.</li>
+            <li>💡 Enjoy background music and polished UI in the meantime.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const audioIcon = document.getElementById('audioIcon');
+    const statusDiv = document.getElementById('status');
+
+    const bgMusic = new Audio('MUSIC/HideSeekBM.mp3');
+    const oSound = new Audio('MUSIC/O_SoundEffect.mp3');
+    const xSound = new Audio('MUSIC/X_SoundEffect.mp3');
+
+    bgMusic.loop = true;
+
+    function toggleMute() {
+      const isMuted = localStorage.getItem('sound') === 'mute';
+      localStorage.setItem('sound', isMuted ? 'unmute' : 'mute');
+      updateAudioIcon();
+      if (!isMuted) {
+        bgMusic.pause();
+      } else {
+        bgMusic.play();
+      }
+    }
+
+    function updateAudioIcon() {
+      audioIcon.textContent = localStorage.getItem('sound') === 'mute' ? '🔇' : '🔉';
+    }
+
+    function playSound(sound) {
+      if (localStorage.getItem('sound') !== 'mute') {
+        sound.currentTime = 0;
+        sound.play();
+      }
+    }
+
+    function startGame() {
+      playSound(oSound);
+      statusDiv.textContent = "⚠️ Sorry! This game is still under development. We apologize for the inconvenience.";
+    }
+
+    function playX() {
+      playSound(xSound);
+      setTimeout(() => location.href = 'index.html', 400);
+    }
+
+    function showRules() {
+      const modal = new bootstrap.Modal(document.getElementById('rulesModal'));
+      modal.show();
+    }
+
+    window.onload = () => {
+      if (!localStorage.getItem('sound')) {
+        localStorage.setItem('sound', 'unmute');
+      }
+      updateAudioIcon();
+      if (localStorage.getItem('sound') === 'unmute') {
+        bgMusic.play().catch(() => {
+          document.addEventListener('click', () => bgMusic.play(), { once: true });
+        });
+      }
+    };
+  </script>
+</body>
+</html>

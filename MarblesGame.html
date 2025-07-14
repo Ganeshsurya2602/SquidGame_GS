@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Gganbu_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="MarblesGame.css">
+</head>
+<body oncontextmenu="return false" style="user-select: none;">
+  <!-- Audio -->
+  <audio id="bgMusic" src="music/breadLotteryBGM.mp3" loop preload="auto"></audio>
+  <audio id="oSound" src="music/O_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="xSound" src="music/X_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="shortWin" src="music/ShortWin_SoundEffect.wav" preload="auto"></audio>
+  <audio id="shortLose" src="music/Heart_Loss_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="finalWin" src="music/kids-yay-soundEffect.mp3" preload="auto"></audio>
+  <audio id="finalLose" src="music/Gun Shot_SoundEffect.mp3" preload="auto"></audio>
+
+  <!-- Navbar -->
+  <nav>
+    <div><strong style="font-family: 'Orbitron', sans-serif;">Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔉</div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container">
+    <button id="guideBtn" class="btn btn-warning btn-sm" onclick="showGuide()">📜 Rule Book</button>
+    <h1>Gganbu Marble Game</h1>
+    <div class="scoreboard">
+      <div class="player-box">
+        <h4>You 🧍</h4>
+        <p>Marbles: <span id="userMarbles">5</span></p>
+      </div>
+      <div class="player-box">
+        <h4>Ganesh 🤖</h4>
+        <p>Marbles: <span id="botMarbles">5</span></p>
+      </div>
+    </div>
+
+    <div id="gameBox">
+      <div class="start-buttons">
+        <button class="btn-circle btn-start" onclick="handleO()">O</button>
+        <button class="btn-circle btn-exit" onclick="handleX()">X</button>
+      </div>
+      <div id="dynamicArea"></div>
+      <div id="gameMessage"></div>
+    </div>
+  </div>
+
+  <!-- Guide Modal -->
+  <div class="modal fade" id="guideModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">📜 Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>Click "O" to Start Game or "X" to Quit.</li>
+            <li>Guess Even or Odd on Ganesh’s turn.</li>
+            <li>On your turn, hide marbles and Ganesh will guess.</li>
+            <li>First to win all 10 marbles wins.</li>
+            <li><strong>Double-click</strong> anywhere to continue to next turn after reading result.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">Let's Play!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap & JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+ // MarblesGameLogic.js
+
+let userMarbles = 5;
+let botMarbles = 5;
+let turn = 'user';
+
+const userSpan = document.getElementById("userMarbles");
+const botSpan = document.getElementById("botMarbles");
+const gameMessage = document.getElementById("gameMessage");
+const dynamicArea = document.getElementById("dynamicArea");
+
+const bgMusic = document.getElementById("bgMusic");
+const oSound = document.getElementById("oSound");
+const xSound = document.getElementById("xSound");
+const shortWin = document.getElementById("shortWin");
+const shortLose = document.getElementById("shortLose");
+const finalWin = document.getElementById("finalWin");
+const finalLose = document.getElementById("finalLose");
+const audioIcon = document.getElementById("audioIcon");
+
+function showGuide() {
+  const modal = new bootstrap.Modal(document.getElementById('guideModal'));
+  modal.show();
+}
+
+function updateScore() {
+  userSpan.textContent = userMarbles;
+  botSpan.textContent = botMarbles;
+}
+
+function startGame() {
+  document.querySelector(".start-buttons").style.display = "none";
+  nextTurn();
+}
+
+function nextTurn() {
+  if (userMarbles === 0 || botMarbles === 0) {
+    showEndScreen();
+    return;
+  }
+  dynamicArea.innerHTML = "";
+  gameMessage.textContent = "";
+  if (turn === 'user') {
+    userTurn();
+  } else {
+    botTurn();
+  }
+}
+
+function userTurn() {
+  gameMessage.textContent = "Your Turn: Choose how many marbles to wager.";
+  let selector = document.createElement('div');
+  selector.className = "marble-selector";
+
+  for (let i = 1; i <= userMarbles; i++) {
+    let btn = document.createElement("div");
+    btn.className = "circle-option";
+    btn.textContent = i;
+    btn.onclick = () => showUserGuess(i);
+    selector.appendChild(btn);
+  }
+  dynamicArea.appendChild(selector);
+}
+
+function showUserGuess(userHeld) {
+  dynamicArea.innerHTML = "";
+  gameMessage.textContent = `You held ${userHeld} marbles. Guess Ganesh's marbles (Even/Odd).`;
+
+  let buttons = document.createElement('div');
+  buttons.className = "even-odd-buttons";
+
+  ['Even', 'Odd'].forEach(choice => {
+    let btn = document.createElement("button");
+    btn.className = "btn btn-info";
+    btn.textContent = choice;
+    btn.onclick = () => resolveUserTurn(userHeld, choice.toLowerCase());
+    buttons.appendChild(btn);
+  });
+  dynamicArea.appendChild(buttons);
+}
+
+function resolveUserTurn(userHeld, guess) {
+  let botHeld = Math.floor(Math.random() * botMarbles) + 1;
+  let botParity = botHeld % 2 === 0 ? 'even' : 'odd';
+
+  let won = guess === botParity;
+  let msg;
+
+  if (won) {
+    userMarbles += botHeld;
+    botMarbles -= botHeld;
+    msg = `✅ Correct! Ganesh held ${botHeld} marbles (${botParity}). You win ${botHeld} marbles.`;
+    shortWin.currentTime = 0;
+    shortWin.play();
+  } else {
+    userMarbles -= userHeld;
+    botMarbles += userHeld;
+    msg = `❌ Wrong! Ganesh held ${botHeld} marbles (${botParity}). You lose ${userHeld} marbles.`;
+    shortLose.currentTime = 0;
+    shortLose.play();
+  }
+
+  updateScore();
+  showResult(msg);
+  turn = 'bot';
+}
+
+function botTurn() {
+  let botHeld = Math.floor(Math.random() * botMarbles) + 1;
+  let guess = Math.random() < 0.5 ? 'even' : 'odd';
+
+  gameMessage.textContent = `Ganesh's Turn: He wagered ${botHeld} marbles and guessed your parity as ${guess.toUpperCase()}.`;
+
+  let selector = document.createElement('div');
+  selector.className = "marble-selector";
+
+  for (let i = 1; i <= userMarbles; i++) {
+    let btn = document.createElement("div");
+    btn.className = "circle-option";
+    btn.textContent = i;
+    btn.onclick = () => resolveBotTurn(botHeld, guess, parseInt(btn.textContent));
+    selector.appendChild(btn);
+  }
+
+  dynamicArea.appendChild(selector);
+}
+
+function resolveBotTurn(botHeld, guess, userHeld) {
+  let userParity = userHeld % 2 === 0 ? 'even' : 'odd';
+  let won = guess === userParity;
+  let msg;
+
+  if (won) {
+    botMarbles += userHeld;
+    userMarbles -= userHeld;
+    msg = `🤖 Ganesh guessed correctly! You held ${userHeld} (${userParity}). You lose ${userHeld} marbles.`;
+    shortLose.currentTime = 0;
+    shortLose.play();
+  } else {
+    botMarbles -= botHeld;
+    userMarbles += botHeld;
+    msg = `😎 Ganesh guessed wrong! You held ${userHeld} (${userParity}). You win ${botHeld} marbles.`;
+    shortWin.currentTime = 0;
+    shortWin.play();
+  }
+
+  updateScore();
+  showResult(msg);
+  turn = 'user';
+}
+
+function showResult(msg) {
+  dynamicArea.innerHTML = "";
+  gameMessage.innerHTML = msg;
+
+  let continueMsg = document.createElement("div");
+  continueMsg.className = "click-continue";
+  continueMsg.textContent = "Double-click anywhere to continue...";
+
+  const waitDoubleClick = () => {
+    document.body.removeEventListener('dblclick', waitDoubleClick);
+    nextTurn();
+  };
+  document.body.addEventListener('dblclick', waitDoubleClick);
+
+  dynamicArea.appendChild(continueMsg);
+}
+
+function showEndScreen() {
+  dynamicArea.innerHTML = "";
+  let result = userMarbles === 0 ? "💀 Ganesh wins the game!" : "🎉 You win the game!";
+  gameMessage.textContent = result;
+
+  if (userMarbles === 0) {
+    bgMusic.pause();
+    finalLose.currentTime = 0;
+    finalLose.play();
+    finalLose.onended = () => bgMusic.play();
+  } else {
+    bgMusic.pause();
+    finalWin.currentTime = 0;
+    finalWin.play();
+    finalWin.onended = () => bgMusic.play();
+  }
+
+  let endBtns = document.createElement('div');
+  endBtns.className = 'start-buttons';
+
+  let restartBtn = document.createElement("button");
+  restartBtn.className = "btn-circle btn-start";
+  restartBtn.textContent = "O";
+  restartBtn.onclick = () => {
+    oSound.currentTime = 0;
+    oSound.play();
+    setTimeout(() => location.reload(), 200);
+  };
+
+  let exitBtn = document.createElement("button");
+  exitBtn.className = "btn-circle btn-exit";
+  exitBtn.textContent = "X";
+  exitBtn.onclick = () => {
+    xSound.currentTime = 0;
+    xSound.play();
+    setTimeout(() => window.location.replace("index.html"), 200);
+  };
+
+  endBtns.appendChild(restartBtn);
+  endBtns.appendChild(exitBtn);
+  dynamicArea.appendChild(endBtns);
+}
+
+function handleO() {
+  oSound.currentTime = 0;
+  oSound.play();
+  startGame();
+}
+
+function handleX() {
+  xSound.currentTime = 0;
+  xSound.play();
+  exitGame();
+}
+
+function exitGame() {
+  window.location.replace("index.html");
+}
+
+function toggleMute() {
+  const newState = localStorage.getItem("sound") === "mute" ? "unmute" : "mute";
+  localStorage.setItem("sound", newState);
+  updateAudioState(true);
+}
+
+function updateAudioState(forcePlay = false) {
+  const isMuted = localStorage.getItem("sound") === "mute";
+  [bgMusic, oSound, xSound, shortWin, shortLose, finalWin, finalLose].forEach(audio => audio.muted = isMuted);
+  audioIcon.textContent = isMuted ? "🔇" : "🔉";
+  if (!isMuted && forcePlay) {
+    bgMusic.play().catch(() => document.addEventListener("click", tryPlayOnce));
+  } else {
+    bgMusic.pause();
+  }
+}
+
+function tryPlayOnce() {
+  bgMusic.play().catch(() => {});
+  document.removeEventListener("click", tryPlayOnce);
+}
+
+window.onload = () => {
+  if (!localStorage.getItem("sound")) localStorage.setItem("sound", "unmute");
+  updateAudioState(true);
+};
+
+</script>
+</body>
+</html>

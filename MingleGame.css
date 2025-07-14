@@ -1,0 +1,87 @@
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('IMG/BG_Mingle.png') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    nav {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 20px;
+}
+
+nav strong {
+  font-family: 'Orbitron', sans-serif;
+}
+
+.audio-toggle {
+  cursor: pointer;
+  font-size: 24px;
+}
+
+    #ruleBtn {
+      display: block;
+      margin: 10px 20px 5px;
+      text-align: left;
+    }
+
+    .container {
+      text-align: center;
+      padding: 10px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #00ffff;
+      margin-bottom: 10px;
+    }
+
+    #buttonPanel {
+      margin: 10px 0;
+    }
+
+    .btn-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+      border: 3px solid black;
+      margin: 10px;
+    }
+
+    .btn-start { background-color: rgba(0,153,102,1); }
+    .btn-exit { background-color: rgba(204,0,0,1); }
+
+    .modal-content {
+      background-color: rgba(193,163,112,1);
+      color: rgba(96,81,56,1);
+      font-weight: bold;
+      border: 2px solid #444;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #00ff88;
+      min-height: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .btn-circle {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+    }

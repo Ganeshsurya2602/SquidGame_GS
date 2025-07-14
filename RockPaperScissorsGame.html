@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>RockPaperScissors_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="RockPaperScissorsGame.css">
+</head>
+<body oncontextmenu="return false">
+  <nav>
+    <div><strong style="font-family: 'Orbitron', sans-serif;">Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔊</div>
+  </nav>
+
+  <div class="container">
+    <button id="ruleBtn" class="btn btn-warning btn-sm" onclick="showRules()">📜 Rule Book</button>
+    <h1>Rock, Paper, Scissors vs Ganesh 🤖</h1>
+    <div id="scoreBoard">
+      🧍 You: <span id="userScore">0</span> |
+      🤖 Ganesh: <span id="botScore">0</span>
+    </div>
+    <div id="buttonPanel">
+      <button class="btn-circle btn-start" onclick="playSound('o'); startGame()">O</button>
+      <button class="btn-circle btn-exit" onclick="playXSoundThenExit()">X</button>
+    </div>
+    <div class="choices">
+      <button class="choice-btn" onclick="play('rock')">✊🏼</button>
+      <button class="choice-btn" onclick="play('paper')">✋🏼</button>
+      <button class="choice-btn" onclick="play('scissors')">✌🏼</button>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <div class="modal fade" id="rulesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🎮 Game Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>✊🏼 beats ✌🏼</li>
+            <li>✋🏼 beats ✊🏼</li>
+            <li>✌🏼 beats ✋🏼</li>
+            <li>📱 Tap your choice to play.</li>
+            <li>🤖 Ganesh will respond instantly. First to 5 wins!</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">Let’s Play!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎵 Audio -->
+  <audio id="bgMusic" src="Music/HideSeekBM.mp3" loop preload="auto"></audio>
+  <audio id="winSound" src="Music/kids-yay-soundEffect.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="Music/Gun Shot_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="oSound" src="Music/O_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="xSound" src="Music/X_SoundEffect.mp3" preload="auto"></audio>
+  <audio id="shortWin" src="Music/ShortWin_SoundEffect.wav" preload="auto"></audio>
+  <audio id="shortLoss" src="Music/errorsound.mp3" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let userScore = 0, botScore = 0, gameStarted = false;
+
+    const bgMusic = document.getElementById('bgMusic');
+    const winSound = document.getElementById('winSound');
+    const loseSound = document.getElementById('loseSound');
+    const oSound = document.getElementById('oSound');
+    const xSound = document.getElementById('xSound');
+    const shortWin = document.getElementById('shortWin');
+    const shortLoss = document.getElementById('shortLoss');
+
+    const audioIcon = document.getElementById('audioIcon');
+    const resultDiv = document.getElementById('result');
+    const buttonPanel = document.getElementById('buttonPanel');
+    const choices = document.querySelector('.choices');
+    const scoreBoard = document.getElementById('scoreBoard');
+    const userScoreSpan = document.getElementById('userScore');
+    const botScoreSpan = document.getElementById('botScore');
+
+    function toggleMute() {
+      const current = localStorage.getItem("sound");
+      const newState = current === "mute" ? "unmute" : "mute";
+      localStorage.setItem("sound", newState);
+      updateAudioState(true);
+    }
+
+    function updateAudioIcon() {
+      const isMuted = localStorage.getItem("sound") === "mute";
+      audioIcon.textContent = isMuted ? "🔇" : "🔊";
+    }
+
+    function updateAudioState(forcePlay = false) {
+      const isMuted = localStorage.getItem("sound") === "mute";
+      [bgMusic, winSound, loseSound, oSound, xSound, shortWin, shortLoss].forEach(audio => audio.muted = isMuted);
+      updateAudioIcon();
+      if (!isMuted && (forcePlay || gameStarted)) {
+        bgMusic.play().catch(() => {
+          // Auto-play blocked: require interaction
+          document.addEventListener("click", tryPlayOnce);
+        });
+      } else {
+        bgMusic.pause();
+      }
+    }
+
+    function tryPlayOnce() {
+      bgMusic.play().catch(() => {});
+      document.removeEventListener("click", tryPlayOnce);
+    }
+
+    function showRules() {
+      const modal = new bootstrap.Modal(document.getElementById('rulesModal'));
+      modal.show();
+    }
+
+    function startGame() {
+      userScore = 0;
+      botScore = 0;
+      userScoreSpan.textContent = '0';
+      botScoreSpan.textContent = '0';
+      resultDiv.textContent = '';
+      resultDiv.classList.remove('end-game');
+      gameStarted = true;
+      buttonPanel.style.display = 'none';
+      scoreBoard.style.display = 'block';
+      choices.style.display = 'flex';
+      updateAudioState(true);
+    }
+
+    function endGame(message, didUserWin) {
+      gameStarted = false;
+      resultDiv.textContent = message;
+      resultDiv.classList.add('end-game');
+      buttonPanel.style.display = 'flex';
+      choices.style.display = 'none';
+      bgMusic.pause();
+      const effectSound = didUserWin ? winSound : loseSound;
+      effectSound.play();
+      effectSound.onended = () => {
+        if (localStorage.getItem("sound") === "unmute") {
+          bgMusic.play().catch(() => {});
+        }
+      };
+    }
+
+    function playSound(type) {
+      if (localStorage.getItem("sound") === "mute") return;
+      if (type === "o") oSound.play();
+      else if (type === "x") xSound.play();
+    }
+
+    function playXSoundThenExit() {
+      if (localStorage.getItem("sound") !== "mute") {
+        xSound.play();
+        xSound.onended = () => location.href = 'index.html';
+      } else {
+        location.href = 'index.html';
+      }
+    }
+
+    function emoji(choice) {
+      return choice === 'rock' ? '✊🏼' : choice === 'paper' ? '✋🏼' : '✌🏼';
+    }
+
+    function fairBotMove() {
+      const options = ['rock', 'paper', 'scissors'];
+      return options[Math.floor(Math.random() * 3)];
+    }
+
+    function play(userMove) {
+      if (!gameStarted) return;
+      const botMove = fairBotMove();
+      let message = "";
+
+      if (userMove === botMove) {
+        message = `🤝 Draw! You both chose ${emoji(userMove)}.`;
+      } else if (
+        (userMove === 'rock' && botMove === 'scissors') ||
+        (userMove === 'paper' && botMove === 'rock') ||
+        (userMove === 'scissors' && botMove === 'paper')
+      ) {
+        userScore++;
+        shortWin.play();
+        message = `🎉 You win! ${emoji(userMove)} beats ${emoji(botMove)}.`;
+      } else {
+        botScore++;
+        shortLoss.play();
+        message = `😈 Ganesh wins! ${emoji(botMove)} beats ${emoji(userMove)}.`;
+      }
+
+      userScoreSpan.textContent = userScore;
+      botScoreSpan.textContent = botScore;
+      resultDiv.textContent = message;
+
+      if (userScore === 5) {
+        endGame("🏅 Victory unlocked. The game is yours!", true);
+      } else if (botScore === 5) {
+        endGame("🤖 Ganesh wins the match. Try again!", false);
+      }
+    }
+
+    // ✅ Initialize on page load
+    window.onload = () => {
+      if (!localStorage.getItem("sound")) {
+        localStorage.setItem("sound", "unmute");
+      }
+      updateAudioState(true);
+    };
+  </script>
+</body>
+</html>

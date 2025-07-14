@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>JumpRope_BY_Ganesh Suryawanshi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="JumpRopeGame.css" />
+</head>
+<body oncontextmenu="return false">
+  <nav>
+    <div><strong style="font-family: 'Orbitron', sans-serif;">Squid Game</strong></div>
+    <div class="audio-toggle" id="audioIcon" onclick="toggleMute()">🔉</div>
+  </nav>
+  <button id="ruleBtn" class="btn btn-warning btn-sm" onclick="showRules()">📜 Rule Book</button>
+
+  <div class="container">
+    <h1>Jump Rope Challenge</h1>
+    <div id="status">Press O to Begin</div>
+    <div id="buttonPanel">
+      <button class="btn-circle btn-start" onclick="startGame()">O</button>
+      <button class="btn-circle btn-exit" onclick="playX()">X</button>
+    </div>
+    <canvas id="gameCanvas" width="600" height="300"></canvas>
+    <div id="finalMessage" class="end-message"></div>
+  </div>
+
+  <!-- Rule Modal -->
+  <div class="modal fade" id="rulesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🎮 Game Rule Book</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li>🔘 Press <strong>O</strong> to start the game.</li>
+            <li>⬆️ Double-tap anywhere to jump.</li>
+            <li>💀 Getting hit by the rope ends the game.</li>
+            <li>🏆 Survive 10 jumps to win.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" data-bs-dismiss="modal">Let's Play!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+ <script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const statusDiv = document.getElementById('status');
+  const buttonPanel = document.getElementById('buttonPanel');
+  const finalMessage = document.getElementById('finalMessage');
+  const audioIcon = document.getElementById('audioIcon');
+
+  let player = { x: 100, y: 250, jumping: false, vy: 0 };
+  let rope = { angle: 0, speed: 0.05 };
+  let gameInterval;
+  let playing = false;
+  let jumps = 0;
+
+  // Audio files
+  const bgMusic = new Audio('MUSIC/JumpRopeBGM.mp3');
+  const winSound = new Audio('MUSIC/kids-yay-soundEffect.mp3');
+  const loseSound = new Audio('MUSIC/vine-boom.mp3');
+  const oSound = new Audio('MUSIC/O_SoundEffect.mp3');
+  const xSound = new Audio('MUSIC/X_SoundEffect.mp3');
+  const shortWinSound = new Audio('MUSIC/ShortWin_SoundEffect.wav');
+
+  bgMusic.loop = true;
+
+  function toggleMute() {
+    const isMuted = localStorage.getItem('sound') === 'mute';
+    localStorage.setItem('sound', isMuted ? 'unmute' : 'mute');
+    updateAudioIcon();
+    if (!isMuted) {
+      bgMusic.pause();
+    } else {
+      bgMusic.play();
+    }
+  }
+
+  function updateAudioIcon() {
+    audioIcon.textContent = localStorage.getItem('sound') === 'mute' ? '🔇' : '🔉';
+  }
+
+  function playSound(sound, shouldPauseBG = false) {
+    if (localStorage.getItem('sound') === 'mute') return;
+
+    sound.currentTime = 0;
+
+    if (shouldPauseBG) {
+      bgMusic.pause();
+      sound.play().then(() => {
+        sound.onended = () => {
+          if (localStorage.getItem('sound') !== 'mute') {
+            bgMusic.play();
+          }
+        };
+      }).catch(e => console.error('Sound Error:', e));
+    } else {
+      sound.play().catch(e => console.error('Sound Error:', e));
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#444';
+    ctx.fillRect(0, 270, canvas.width, 30);
+
+    const ropeX = canvas.width / 2;
+    const ropeY = 270;
+    const ropeLength = 200;
+
+    ctx.save();
+    ctx.translate(ropeX, ropeY);
+    ctx.rotate(-rope.angle);
+    ctx.strokeStyle = '#ffaa00';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(ropeLength, 0);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.font = '28px Segoe UI';
+    ctx.fillStyle = 'white';
+    ctx.fillText('🚶🏼‍♂️‍➡️', player.x - 18, player.y + 10);
+  }
+
+  function update() {
+    rope.angle += rope.speed;
+    if (rope.angle > Math.PI * 2) {
+      rope.angle -= Math.PI * 2;
+      rope.speed += 0.01;
+      jumps++;
+      if (jumps >= 10) {
+        endGame(true);
+        playSound(winSound, true); // only winSound pauses bg
+      } else {
+        playSound(shortWinSound); // no bg pause
+      }
+    }
+
+    if (player.jumping) {
+      player.y += player.vy;
+      player.vy += 0.8;
+      if (player.y >= 250) {
+        player.y = 250;
+        player.jumping = false;
+        player.vy = 0;
+      }
+    }
+
+    const ropeTipX = canvas.width / 2 + 200 * Math.cos(rope.angle);
+    const ropeTipY = 270 - 200 * Math.sin(rope.angle);
+    const dx = player.x - ropeTipX;
+    const dy = player.y - ropeTipY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 30 && player.y >= 240) {
+      endGame(false);
+      playSound(loseSound); // no bg pause
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+  }
+
+  function startGame() {
+    playSound(oSound); // no bg pause
+    player.y = 250;
+    player.jumping = false;
+    player.vy = 0;
+    rope.angle = 0;
+    rope.speed = 0.05;
+    jumps = 0;
+    playing = true;
+    finalMessage.textContent = '';
+    statusDiv.textContent = 'Avoid the Rope! Jump 10 times to win!';
+    canvas.style.display = 'block';
+    buttonPanel.style.display = 'none';
+    clearInterval(gameInterval);
+    gameInterval = setInterval(loop, 30);
+  }
+
+  function endGame(win) {
+    clearInterval(gameInterval);
+    playing = false;
+    finalMessage.textContent = win ? '🏆 You survived the rope! Victory!' : '💀 You got hit! Try again.';
+    canvas.style.display = 'none';
+    buttonPanel.style.display = 'block';
+  }
+
+  function jump() {
+    if (!playing) return;
+    if (!player.jumping) {
+      player.jumping = true;
+      player.vy = -10;
+    }
+  }
+
+  function playX() {
+    playSound(xSound); // no bg pause
+    setTimeout(() => location.href = 'index.html', 400);
+  }
+
+  function showRules() {
+    const modal = new bootstrap.Modal(document.getElementById('rulesModal'));
+    modal.show();
+  }
+
+  document.addEventListener('dblclick', jump);
+
+  window.onload = () => {
+    if (!localStorage.getItem('sound')) {
+      localStorage.setItem('sound', 'unmute');
+    }
+    updateAudioIcon();
+    if (localStorage.getItem('sound') === 'unmute') {
+      bgMusic.play().catch(() => {
+        document.addEventListener('click', () => bgMusic.play(), { once: true });
+      });
+    }
+  };
+</script>
+
+</body>
+</html>
